@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee Turnover Prediction</title>
+</head>
+<body>
+    <h2>Employee Turnover Prediction</h2>
+    <form action="/predict" method="post">
+        <label>Sex:</label><input type="text" name="Sex" required><br>
+        <label>Label:</label><input type="text" name="Label" required><br>
+        <label>Status:</label><input type="text" name="Status" required><br>
+        <label>College:</label><input type="text" name="College" required><br>
+        <label>Fild of Study:</label><input type="text" name="Fild_of_Study" required><br>
+        <label>Salary:</label><input type="number" name="Salary" step="0.01" required><br>
+        <label>Age:</label><input type="number" name="age" required><br>
+        <label>Year_of_Service:</label><input type="number" name="year_of_service" required><br>
+        <button type="submit">Predict</button>
+    </form>
+</body>
+</html>

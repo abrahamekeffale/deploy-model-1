@@ -1,53 +1,29 @@
-from fastapi import FastAPI, Form
-from pydantic import BaseModel
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 import joblib
 import pandas as pd
 
 # Initialize FastAPI app
 app = FastAPI()
 
-# Load the saved Decision Tree model
+# Load the trained model
 model = joblib.load("Notebooks/best_decision_tree_model.pkl")
 
-# Define input data schema
-class EmployeeData(BaseModel):
-    Sex: str
-    Label: str
-    Status: str
-    College: str
-    Fild_of_Study: str
-    Salary: float
-    age: int
-    year_of_service: int
+# Set up templates for rendering HTML
+templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Root endpoint
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to the Employee Turnover Prediction API!"}
+# Root route to display the form
+@app.get("/", response_class=HTMLResponse)
+def read_form(request: Request):
+    return templates.TemplateResponse("form.html", {"request": request})
 
-# Predict endpoint for JSON input
-@app.post("/predict/")
-def predict(data: EmployeeData):
-    # Convert input data to DataFrame
-    input_data = pd.DataFrame([data.dict()])
-
-    # Ensure column order matches training data
-    input_data = input_data[[
-        "Sex", "Label", "Status", "College", "Fild_of_Study",
-        "Salary", "age", "year_of_service"
-    ]]
-
-    # Make predictions
-    prediction = model.predict(input_data)[0]
-
-    # Decode prediction to original label (if encoded)
-    prediction_label = "Retained" if prediction == 0 else "Left"
-
-    return {"prediction": prediction_label}
-
-# Interactive prediction endpoint
-@app.post("/interactive-predict/")
-def interactive_predict(
+# Predict route to handle form submission and display prediction
+@app.post("/predict", response_class=HTMLResponse)
+async def predict(
+    request: Request,
     Sex: str = Form(...),
     Label: str = Form(...),
     Status: str = Form(...),
@@ -57,22 +33,28 @@ def interactive_predict(
     age: int = Form(...),
     year_of_service: int = Form(...)
 ):
-    # Prepare input data
+    # Create a DataFrame from form inputs
     input_data = pd.DataFrame([{
         "Sex": Sex,
         "Label": Label,
         "Status": Status,
         "College": College,
-        "Fild_of_Study": Fild_of_Study,
+        "Fild of Study": Fild_of_Study,
         "Salary": Salary,
         "age": age,
         "year_of_service": year_of_service
     }])
 
-    # Make predictions
+    # Predict the outcome
     prediction = model.predict(input_data)[0]
-
-    # Decode prediction to original label (if encoded)
     prediction_label = "Retained" if prediction == 0 else "Left"
 
-    return {"prediction": prediction_label}
+    # Render the result in HTML
+    return templates.TemplateResponse(
+        "result.html",
+        {
+            "request": request,
+            "prediction": prediction_label,
+            "data": input_data.to_dict(orient="records")[0]
+        }
+    )
